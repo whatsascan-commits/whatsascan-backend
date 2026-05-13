@@ -8,10 +8,11 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
-const config_1 = require("@nestjs/config");
 const mongoose_1 = require("@nestjs/mongoose");
-const transfer_gateway_1 = require("./transfer.gateway");
-const whatsapp_service_1 = require("./whatsapp.service");
+const config_1 = require("@nestjs/config");
+const session_module_1 = require("./session/session.module");
+const whatsapp_module_1 = require("./whatsapp/whatsapp.module");
+const socket_gateway_1 = require("./gateway/socket.gateway");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -21,11 +22,11 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
             }),
-            mongoose_1.MongooseModule.forRoot(process.env.MONGO_URI || '', {
-                serverSelectionTimeoutMS: 10000,
-            }),
+            mongoose_1.MongooseModule.forRoot(process.env.MONGO_URL),
+            session_module_1.SessionModule,
+            whatsapp_module_1.WhatsappModule,
         ],
-        providers: [transfer_gateway_1.TransferGateway, whatsapp_service_1.WhatsAppService],
+        providers: [socket_gateway_1.SocketGateway],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map

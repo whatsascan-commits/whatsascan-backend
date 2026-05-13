@@ -1,18 +1,38 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { TransferGateway } from './transfer.gateway';
-import { WhatsAppService } from './whatsapp.service';
+import { ConfigModule } from '@nestjs/config';
+
+import { SessionModule } from './session/session.module';
+import { WhatsappModule } from './whatsapp/whatsapp.module';
+
+import { SocketGateway } from './gateway/socket.gateway';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ 
+    // =========================
+    // ENV CONFIG
+    // =========================
+    ConfigModule.forRoot({
       isGlobal: true,
     }),
-    MongooseModule.forRoot(process.env.MONGO_URI || '', { 
-      serverSelectionTimeoutMS: 10000,
-    }), 
+
+    // =========================
+    // MONGODB
+    // =========================
+    MongooseModule.forRoot(
+      process.env.MONGO_URL as string,
+    ),
+
+    // =========================
+    // MODULES
+    // =========================
+    SessionModule,
+    WhatsappModule,
   ],
-  providers: [TransferGateway, WhatsAppService],
+
+  // =========================
+  // PROVIDERS
+  // =========================
+  providers: [SocketGateway],
 })
 export class AppModule {}
