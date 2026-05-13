@@ -9,7 +9,7 @@ import {
 } from 'whatsapp-web.js';
 
 import { MongoStore } from 'wwebjs-mongo';
-import * as mongoose from 'mongoose';
+import mongoose from 'mongoose';
 
 import * as qrcodeTerminal from 'qrcode-terminal';
 import * as QRCode from 'qrcode';
@@ -37,12 +37,8 @@ export class WhatsappService implements OnModuleInit {
     }
 
     async startWhatsApp() {
-        // ✅ Mongo connect (required for RemoteAuth)
         await mongoose.connect(process.env.MONGO_URL as string);
 
-        await new Promise((resolve) => {
-            mongoose.connection.once('connected', resolve);
-        });
         const store = new MongoStore({
             mongoose: mongoose,
         });
