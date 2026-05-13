@@ -30,9 +30,10 @@ export class WhatsappService implements OnModuleInit {
     ) { }
 
     async onModuleInit() {
-        // ✅ IMPORTANT: non-blocking init
         setTimeout(() => {
-            this.startWhatsApp();
+            this.startWhatsApp().catch((err) => {
+                console.error('WHATSAPP STARTUP ERROR:', err);
+            });
         }, 3000);
     }
 
@@ -50,13 +51,13 @@ export class WhatsappService implements OnModuleInit {
             }),
             puppeteer: {
                 headless: true,
+                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
                 args: [
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
                     '--disable-dev-shm-usage',
                     '--disable-gpu',
                     '--no-zygote',
-                    '--single-process',
                 ],
             },
         });
