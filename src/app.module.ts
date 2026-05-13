@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { SessionModule } from './session/session.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
@@ -19,9 +19,13 @@ import { SocketGateway } from './gateway/socket.gateway';
     // =========================
     // MONGODB
     // =========================
-    MongooseModule.forRoot(
-      process.env.MONGO_URL as string,
-    ),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGO_URL'),
+      }),
+      inject: [ConfigService],
+    }),
 
     // =========================
     // MODULES
