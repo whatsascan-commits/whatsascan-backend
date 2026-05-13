@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { v4 as uuid } from 'uuid';
+import { randomUUID } from 'crypto';
 import { Session } from './schemas/session.schema';
 
 @Injectable()
@@ -25,7 +25,7 @@ export class SessionService {
 
   // create new
   const session = await this.sessionModel.create({
-    sessionId: uuid(),
+    sessionId: randomUUID(),
     status: 'PENDING',
     createdOn: Date.now(),
   });
