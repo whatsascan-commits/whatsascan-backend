@@ -25,7 +25,7 @@ export class SessionService {
 
   // create new
   const session = await this.sessionModel.create({
-    sessionId: crypto.randomUUID(),
+    sessionId: uuid(),
     status: 'PENDING',
     createdOn: Date.now(),
   });
