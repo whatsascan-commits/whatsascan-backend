@@ -196,7 +196,9 @@ export class WhatsappService
         // ======================
         // INIT
         // ======================
-        await this.client.initialize();
+        this.client.initialize().catch((err) => {
+            console.error('WHATSAPP INIT ERROR:', err);
+        });
     }
 
     async getQrImage(): Promise<Buffer | null> {
