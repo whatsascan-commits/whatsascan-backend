@@ -27,7 +27,7 @@ export class WhatsappService implements OnModuleInit {
     constructor(
         private readonly sessionService: SessionService,
         private readonly socketGateway: SocketGateway,
-    ) {}
+    ) { }
 
     async onModuleInit() {
         // ✅ IMPORTANT: non-blocking init
@@ -40,6 +40,9 @@ export class WhatsappService implements OnModuleInit {
         // ✅ Mongo connect (required for RemoteAuth)
         await mongoose.connect(process.env.MONGO_URL as string);
 
+        await new Promise((resolve) => {
+            mongoose.connection.once('connected', resolve);
+        });
         const store = new MongoStore({
             mongoose: mongoose,
         });
