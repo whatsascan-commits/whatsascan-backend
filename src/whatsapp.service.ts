@@ -40,6 +40,11 @@ export class WhatsAppService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WhatsAppService.name);
   private readonly sessionModel: Model<SessionDoc>;
   private client!: Client;
+  private latestQr: string | null = null;
+  private isReady = false;
+
+  getLatestQr(): string | null { return this.latestQr; }
+  getIsReady(): boolean { return this.isReady; }
 
   constructor(
     @InjectConnection() private readonly mongoConnection: Connection,
@@ -110,15 +115,20 @@ export class WhatsAppService implements OnModuleInit, OnModuleDestroy {
 
     // QR
     this.client.on('qr', (qr) => {
-      this.logger.log('Scan QR:');
+      this.latestQr = qr;
+      this.isReady = false;
+      this.logger.log('QR ready — visit /api/qr to scan');
       qrcodeTerminal.generate(qr, { small: true });
     });
 
     this.client.on('authenticated', () => {
+      this.latestQr = null;
       this.logger.log('AUTHENTICATED ✅');
     });
 
     this.client.on('ready', () => {
+      this.latestQr = null;
+      this.isReady = true;
       const wid = (this.client as any).info?.wid?._serialized;
       this.logger.log(`READY ✅ Logged in as ${wid}`);
     });
