@@ -5,8 +5,11 @@ import {
 
 import {
     Client,
-    LocalAuth,
+    RemoteAuth,
 } from 'whatsapp-web.js';
+
+import { MongoStore } from 'wwebjs-mongo';
+import * as mongoose from 'mongoose';
 
 import * as qrcodeTerminal from 'qrcode-terminal';
 import * as QRCode from 'qrcode';
@@ -16,8 +19,7 @@ import { SessionService } from '../session/session.service';
 import { SocketGateway } from '../gateway/socket.gateway';
 
 @Injectable()
-export class WhatsappService
-    implements OnModuleInit {
+export class WhatsappService implements OnModuleInit {
     client!: Client;
     private latestQr: string | null = null;
     isReady = false;
@@ -25,11 +27,28 @@ export class WhatsappService
     constructor(
         private readonly sessionService: SessionService,
         private readonly socketGateway: SocketGateway,
-    ) { }
+    ) {}
 
     async onModuleInit() {
+        // ✅ IMPORTANT: non-blocking init
+        setTimeout(() => {
+            this.startWhatsApp();
+        }, 3000);
+    }
+
+    async startWhatsApp() {
+        // ✅ Mongo connect (required for RemoteAuth)
+        await mongoose.connect(process.env.MONGO_URI as string);
+
+        const store = new MongoStore({
+            mongoose: mongoose,
+        });
+
         this.client = new Client({
-            authStrategy: new LocalAuth(),
+            authStrategy: new RemoteAuth({
+                store: store,
+                backupSyncIntervalMs: 300000,
+            }),
             puppeteer: {
                 headless: true,
                 args: [
@@ -37,12 +56,14 @@ export class WhatsappService
                     '--disable-setuid-sandbox',
                     '--disable-dev-shm-usage',
                     '--disable-gpu',
+                    '--no-zygote',
+                    '--single-process',
                 ],
             },
         });
 
         // ======================
-        // QR EVENT
+        // QR
         // ======================
         this.client.on('qr', (qr) => {
             this.latestQr = qr;
@@ -61,140 +82,67 @@ export class WhatsappService
         });
 
         // ======================
-        // MESSAGE EVENT
+        // MESSAGE
         // ======================
-        this.client.on(
-            'message',
-            async (message) => {
-                try {
-                    // 🚨 IGNORE GROUPS
-                    if (message.from.endsWith('@g.us')) {
-                        return;
-                    }
+        this.client.on('message', async (message) => {
+            try {
+                if (message.from.endsWith('@g.us')) return;
 
-                    const phone =
-                        message.from.replace('@c.us', '');
+                const phone = message.from.replace('@c.us', '');
 
-                    console.log(
-                        'NEW PRIVATE MESSAGE:',
+                // CONNECT
+                if (message.body?.startsWith('Connect:')) {
+                    const sessionId = message.body.split(':')[1].trim();
+
+                    await this.sessionService.connectSession(
                         phone,
+                        sessionId,
                     );
 
-                    // ======================
-                    // CONNECT SESSION
-                    // ======================
-                    if (
-                        message.body?.startsWith('Connect:')
-                    ) {
-                        const sessionId =
-                            message.body
-                                .split(':')[1]
-                                .trim();
+                    this.socketGateway.sendConnected(sessionId);
 
-                        console.log(
-                            'CONNECT REQUEST:',
-                            sessionId,
-                        );
-
-                        await this.sessionService.connectSession(
-                            phone,
-                            sessionId,
-                        );
-
-                        this.socketGateway.sendConnected(
-                            sessionId,
-                        );
-
-                        await message.reply(
-                            'Connected Successfully ✅',
-                        );
-
-                        return;
-                    }
-
-                    // ======================
-                    // MEDIA / FILE HANDLING
-                    // ======================
-                    if (message.hasMedia) {
-                        console.log('MEDIA RECEIVED');
-
-                        const session =
-                            await this.sessionService.findByPhone(
-                                phone,
-                            );
-                        console.log('SESSION FOUND:', session);
-                        console.log("SESSION ID USED:", session?.sessionId);
-
-                        if (!session) {
-                            console.log(
-                                'NO SESSION FOUND FOR PHONE',
-                            );
-                            return;
-                        }
-
-                        const media =
-                            await message.downloadMedia();
-
-                        if (!media) {
-                            console.log(
-                                'MEDIA DOWNLOAD FAILED',
-                            );
-                            return;
-                        }
-
-                        const extension =
-                            media.mimetype.split(
-                                '/',
-                            )[1];
-
-                        const fileName = `${Date.now()}.${extension}`;
-
-                        const buffer =
-                            Buffer.from(
-                                media.data,
-                                'base64',
-                            );
-
-                        // ======================
-                        // SAVE FILE
-                        // ======================
-                        await fs.writeFile(
-                            `uploads/${fileName}`,
-                            buffer,
-                        );
-
-                        console.log(
-                            'FILE SAVED:',
-                            fileName,
-                        );
-
-                        const fileData = {
-                            url: `/uploads/${fileName}`,
-                            mimeType: media.mimetype,
-                            fileName,
-                        };
-                        console.log("EMITTING FILE TO SESSION:", session.sessionId);
-
-                        // ======================
-                        // SEND TO FRONTEND
-                        // ======================
-                        this.socketGateway.sendFile(
-                            session.sessionId,
-                            fileData,
-                        );
-
-                        console.log(
-                            'FILE SENT TO FRONTEND ✅',
-                        );
-                    }
-                } catch (err) {
-                    console.log('ERROR:', err);
+                    await message.reply('Connected Successfully ✅');
+                    return;
                 }
-            },
-        );
+
+                // MEDIA
+                if (message.hasMedia) {
+                    const session =
+                        await this.sessionService.findByPhone(phone);
+
+                    if (!session) return;
+
+                    const media = await message.downloadMedia();
+                    if (!media) return;
+
+                    const extension = media.mimetype.split('/')[1];
+                    const fileName = `${Date.now()}.${extension}`;
+
+                    const buffer = Buffer.from(media.data, 'base64');
+
+                    // ✅ ensure folder exists
+                    await fs.ensureDir('uploads');
+
+                    await fs.writeFile(`uploads/${fileName}`, buffer);
+
+                    const fileData = {
+                        url: `/uploads/${fileName}`,
+                        mimeType: media.mimetype,
+                        fileName,
+                    };
+
+                    this.socketGateway.sendFile(
+                        session.sessionId,
+                        fileData,
+                    );
+                }
+            } catch (err) {
+                console.log('ERROR:', err);
+            }
+        });
 
         // ======================
-        // INIT
+        // INIT (non-blocking)
         // ======================
         this.client.initialize().catch((err) => {
             console.error('WHATSAPP INIT ERROR:', err);
