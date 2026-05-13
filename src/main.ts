@@ -6,7 +6,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
-  console.log('MONGO_URL:', process.env.MONGO_URL ? 'SET' : 'UNDEFINED');
+  console.log('MONGO_URL:', process.env.MONGO_URL);
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') ?? 3000;
