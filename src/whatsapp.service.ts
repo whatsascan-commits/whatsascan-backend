@@ -73,9 +73,13 @@ export class WhatsAppService implements OnModuleInit, OnModuleDestroy {
       throw new Error('Mongo connection is not ready');
     }
 
-    // ✅ Mongo Store (IMPORTANT)
+    // NestJS uses createConnection() so mongoose.connection is not the active connection.
+    // Pass a shim that points to the actual connected instance.
     const store = new MongoStore({
-      mongoose: mongoose,
+      mongoose: {
+        connection: this.mongoConnection,
+        mongo: mongoose.mongo,
+      } as any,
     });
 
     const isLinux = platform() === 'linux';
