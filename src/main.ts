@@ -26,6 +26,6 @@ async function bootstrap() {
 
   await app.listen(8080, '0.0.0.0');
 
-  console.log(`Server Running On ${port}`);
+  console.log(`Server Running On ${8080}`);
 }
 bootstrap();
