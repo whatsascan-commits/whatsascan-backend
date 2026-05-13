@@ -11,7 +11,7 @@ import { WhatsAppService } from './whatsapp.service';
     }),
     MongooseModule.forRoot(process.env.MONGO_URI || '', { 
       serverSelectionTimeoutMS: 10000,
-    }),
+    }), 
   ],
   providers: [TransferGateway, WhatsAppService],
 })
