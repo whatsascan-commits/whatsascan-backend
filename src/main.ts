@@ -24,7 +24,7 @@ async function bootstrap() {
 
   app.getHttpAdapter().get('/health', (_req, res: any) => res.json({ status: 'ok' }));
 
-  await app.listen(port, '0.0.0.0');
+  await app.listen(8080, '0.0.0.0');
 
   console.log(`Server Running On ${port}`);
 }
