@@ -19,8 +19,10 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
-  prefix: '/uploads/',
-});
+    prefix: '/uploads/',
+  });
+
+  app.getHttpAdapter().get('/health', (_req, res: any) => res.json({ status: 'ok' }));
 
   await app.listen(port, '0.0.0.0');
 
