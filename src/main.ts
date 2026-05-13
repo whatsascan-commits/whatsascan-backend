@@ -21,7 +21,7 @@ async function bootstrap() {
   prefix: '/uploads/',
 });
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   console.log(`Server Running On ${port}`);
 }
