@@ -8,7 +8,8 @@ import {
     LocalAuth,
 } from 'whatsapp-web.js';
 
-import * as qrcode from 'qrcode-terminal';
+import * as qrcodeTerminal from 'qrcode-terminal';
+import * as QRCode from 'qrcode';
 import * as fs from 'fs-extra';
 
 import { SessionService } from '../session/session.service';
@@ -18,6 +19,8 @@ import { SocketGateway } from '../gateway/socket.gateway';
 export class WhatsappService
     implements OnModuleInit {
     client!: Client;
+    private latestQr: string | null = null;
+    isReady = false;
 
     constructor(
         private readonly sessionService: SessionService,
@@ -40,16 +43,18 @@ export class WhatsappService
         // QR EVENT
         // ======================
         this.client.on('qr', (qr) => {
+            this.latestQr = qr;
+            this.isReady = false;
             console.log('SCAN QR BELOW');
-            qrcode.generate(qr, {
-                small: true,
-            });
+            qrcodeTerminal.generate(qr, { small: true });
         });
 
         // ======================
         // READY
         // ======================
         this.client.on('ready', () => {
+            this.latestQr = null;
+            this.isReady = true;
             console.log('WHATSAPP READY ✅');
         });
 
@@ -190,5 +195,10 @@ export class WhatsappService
         // INIT
         // ======================
         await this.client.initialize();
+    }
+
+    async getQrImage(): Promise<Buffer | null> {
+        if (!this.latestQr) return null;
+        return QRCode.toBuffer(this.latestQr, { width: 300 });
     }
 }
