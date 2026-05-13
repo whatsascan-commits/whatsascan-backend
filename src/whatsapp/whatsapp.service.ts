@@ -38,7 +38,7 @@ export class WhatsappService implements OnModuleInit {
 
     async startWhatsApp() {
         // ✅ Mongo connect (required for RemoteAuth)
-        await mongoose.connect(process.env.MONGO_URI as string);
+        await mongoose.connect(process.env.MONGO_URL as string);
 
         const store = new MongoStore({
             mongoose: mongoose,
