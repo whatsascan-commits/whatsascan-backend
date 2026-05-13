@@ -75,7 +75,7 @@ export class WhatsAppService implements OnModuleInit, OnModuleDestroy {
 
     // ✅ Mongo Store (IMPORTANT)
     const store = new MongoStore({
-      mongoose: this.mongoConnection,
+      mongoose: mongoose,
     });
 
     const isLinux = platform() === 'linux';
